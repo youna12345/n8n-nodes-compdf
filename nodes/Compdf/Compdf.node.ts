@@ -35,6 +35,7 @@ export class Compdf implements INodeType {
         displayName: 'Execute Type URL',
         name: 'executeTypeUrl',
         type: 'string',
+        default: '',
         required: true,
         displayOptions: { show: { operation: ['fileProcessing'] } }
       },
@@ -49,6 +50,7 @@ export class Compdf implements INodeType {
         displayName: 'Parameter',
         name: 'parameter',
         type: 'string',
+        default: '',
         required: true,
         displayOptions: { show: { operation: ['fileProcessing'] } }
       },
@@ -63,13 +65,14 @@ export class Compdf implements INodeType {
         displayName: 'Task ID',
         name: 'taskId',
         type: 'string',
+        default: '',
         required: true,
         displayOptions: { show: { operation: ['getTaskInfo'] } }
       }
     ]
   };
 
-  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[]> {
+  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const operation = this.getNodeParameter('operation', 0);
     const creds = await this.getCredentials('compdfApi');
     const apiKey = creds.apiKey as string;
@@ -92,7 +95,7 @@ export class Compdf implements INodeType {
         body: form,
       });
 
-      return [{ json: response }];
+      return [this.helpers.returnJsonArray(response)];
     }
 
     const taskId = this.getNodeParameter('taskId', 0);
@@ -105,10 +108,10 @@ export class Compdf implements INodeType {
       });
 
       if (['TaskFinish', 'TaskError', 'TaskCancel'].includes(res?.data?.taskStatus)) {
-        return [{ json: res.data }];
+        return [this.helpers.returnJsonArray(res.data)];
       }
       await new Promise(r => setTimeout(r, 5000));
     }
-    return [{ json: { taskId, finalStatus: 'Timeout' } }];
+    return [this.helpers.returnJsonArray({ taskId, finalStatus: 'Timeout' })];
   }
 }
