@@ -1,0 +1,16 @@
+
+{
+  "name": "n8n-nodes-compdf",
+  "version": "0.1.0",
+  "description": "n8n community node for ComPDF API",
+  "keywords": ["n8n-community-node-package"],
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "n8n-node-dev",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0"
+  }
+}
