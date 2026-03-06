@@ -2,16 +2,16 @@
 	"node": "n8n-nodes-compdf.compdf",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
-	"categories": ["Development", "Developer Tools"],
+	"categories": ["Productivity", "Data & Storage"],
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://github.com/YOUR_GITHUB_USERNAME/n8n-nodes-compdf#credentials"
+				"url": "https://github.com/youna12345/n8n-nodes-compdf#credentials"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://github.com/YOUR_GITHUB_USERNAME/n8n-nodes-compdf"
+				"url": "https://github.com/youna12345/n8n-nodes-compdf"
 			}
 		]
 	}
