@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-compdf",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "n8n community node for ComPDF API - async document processing",
   "keywords": [
     "n8n-community-node-package"
@@ -8,7 +8,8 @@
   "license": "MIT",
   "homepage": "https://github.com/youna12345/n8n-nodes-compdf",
   "author": {
-    "name": "ComPDF"
+    "name": "ComPDF",
+    "email": "support@compdf.com"
   },
   "repository": {
     "type": "git",
