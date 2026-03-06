@@ -5,7 +5,6 @@ import {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
-import FormData from 'form-data';
 
 const FIXED_EXECUTE_TYPE_URLS: Record<string, string> = {
   pdfToWord: 'pdf/docx',
@@ -143,38 +142,32 @@ export class Compdf implements INodeType {
       const binaryData = this.helpers.assertBinaryData(0, binaryName);
       const fileBuffer = await this.helpers.getBinaryDataBuffer(0, binaryName);
 
-      const form = new FormData();
-      form.append('file', fileBuffer, binaryData.fileName);
-      form.append('parameter', this.getNodeParameter('parameter', 0));
-      form.append('language', this.getNodeParameter('language', 0));
-
       const executeTypeUrl = FIXED_EXECUTE_TYPE_URLS[operation]
         ?? this.getNodeParameter('executeTypeUrl', 0) as string;
+
+      const formData = new FormData();
+      formData.append('file', new Blob([new Uint8Array(fileBuffer)]), binaryData.fileName ?? 'file');
+      formData.append('parameter', this.getNodeParameter('parameter', 0) as string);
+      formData.append('language', this.getNodeParameter('language', 0) as string);
 
       const response = await this.helpers.httpRequest({
         method: 'POST',
         url: `https://api-server.compdf.com/server/v2/processAsync/${executeTypeUrl}`,
-        headers: { 'x-api-key': apiKey, ...form.getHeaders() },
-        body: form,
+        headers: { 'x-api-key': apiKey },
+        body: formData,
       });
 
       return [this.helpers.returnJsonArray(response)];
     }
 
     const taskId = this.getNodeParameter('taskId', 0);
-    for (let i = 0; i < 10; i++) {
-      const res = await this.helpers.httpRequest({
-        method: 'GET',
-        url: 'https://api-server.compdf.com/server/v2/task/taskInfo',
-        headers: { 'x-api-key': apiKey },
-        qs: { taskId },
-      });
+    const res = await this.helpers.httpRequest({
+      method: 'GET',
+      url: 'https://api-server.compdf.com/server/v2/task/taskInfo',
+      headers: { 'x-api-key': apiKey },
+      qs: { taskId },
+    });
 
-      if (['TaskFinish', 'TaskError', 'TaskCancel'].includes(res?.data?.taskStatus)) {
-        return [this.helpers.returnJsonArray(res.data)];
-      }
-      await new Promise(r => setTimeout(r, 5000));
-    }
-    return [this.helpers.returnJsonArray({ taskId, finalStatus: 'Timeout' })];
+    return [this.helpers.returnJsonArray(res.data ?? res)];
   }
 }

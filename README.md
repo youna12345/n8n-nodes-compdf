@@ -76,7 +76,8 @@ All file processing operations in this node use the **async processing** pattern
 2. Connect it to a source that provides a binary file (e.g., HTTP Request or Read Binary File)
 3. The node returns a `taskId` in the output
 4. Add another **ComPDF** node with operation **Get Task Information**
-5. Pass the `taskId` from step 3 — the node automatically polls until the task completes (up to 10 retries, 5s intervals)
+5. Pass the `taskId` from step 3 — the node queries the current task status and returns the result
+6. Use an **If** node to check if `taskStatus` is `TaskFinish`, and a **Wait** node to retry if still processing
 
 ### Parameters
 
