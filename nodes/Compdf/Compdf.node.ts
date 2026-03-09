@@ -4,6 +4,8 @@ import {
   INodeExecutionData,
   INodeType,
   INodeTypeDescription,
+  NodeApiError,
+  NodeOperationError,
 } from 'n8n-workflow';
 
 const FIXED_EXECUTE_TYPE_URLS: Record<string, string> = {
@@ -133,41 +135,67 @@ export class Compdf implements INodeType {
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-    const operation = this.getNodeParameter('operation', 0) as string;
-    const creds = await this.getCredentials('compdfApi');
-    const apiKey = creds.apiKey as string;
+    const items = this.getInputData();
+    const returnData: INodeExecutionData[] = [];
 
-    if (operation !== 'getTaskInfo') {
-      const binaryName = this.getNodeParameter('binaryPropertyName', 0) as string;
-      const binaryData = this.helpers.assertBinaryData(0, binaryName);
-      const fileBuffer = await this.helpers.getBinaryDataBuffer(0, binaryName);
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const operation = this.getNodeParameter('operation', i) as string;
+        const creds = await this.getCredentials('compdfApi');
+        const apiKey = creds.apiKey as string;
 
-      const executeTypeUrl = FIXED_EXECUTE_TYPE_URLS[operation]
-        ?? this.getNodeParameter('executeTypeUrl', 0) as string;
+        if (operation !== 'getTaskInfo') {
+          const binaryName = this.getNodeParameter('binaryPropertyName', i) as string;
+          const binaryData = this.helpers.assertBinaryData(i, binaryName);
+          const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryName);
 
-      const formData = new FormData();
-      formData.append('file', new Blob([new Uint8Array(fileBuffer)]), binaryData.fileName ?? 'file');
-      formData.append('parameter', this.getNodeParameter('parameter', 0) as string);
-      formData.append('language', this.getNodeParameter('language', 0) as string);
+          const executeTypeUrl = FIXED_EXECUTE_TYPE_URLS[operation]
+            ?? this.getNodeParameter('executeTypeUrl', i) as string;
 
-      const response = await this.helpers.httpRequest({
-        method: 'POST',
-        url: `https://api-server.compdf.com/server/v2/processAsync/${executeTypeUrl}`,
-        headers: { 'x-api-key': apiKey },
-        body: formData,
-      });
+          const formData = new FormData();
+          formData.append('file', new Blob([new Uint8Array(fileBuffer)]), binaryData.fileName ?? 'file');
+          formData.append('parameter', this.getNodeParameter('parameter', i) as string);
+          formData.append('language', this.getNodeParameter('language', i) as string);
 
-      return [this.helpers.returnJsonArray(response)];
+          const response = await this.helpers.httpRequest({
+            method: 'POST',
+            url: `https://api-server.compdf.com/server/v2/processAsync/${executeTypeUrl}`,
+            headers: { 'x-api-key': apiKey },
+            body: formData,
+          });
+
+          const items_out = Array.isArray(response) ? response : [response];
+          for (const item of items_out) {
+            returnData.push({ json: item, pairedItem: { item: i } });
+          }
+        } else {
+          const taskId = this.getNodeParameter('taskId', i) as string;
+          if (!taskId) {
+            throw new NodeOperationError(this.getNode(), 'Task ID is required', { itemIndex: i });
+          }
+
+          const res = await this.helpers.httpRequest({
+            method: 'GET',
+            url: 'https://api-server.compdf.com/server/v2/task/taskInfo',
+            headers: { 'x-api-key': apiKey },
+            qs: { taskId },
+          });
+
+          const data = res.data ?? res;
+          const items_out = Array.isArray(data) ? data : [data];
+          for (const item of items_out) {
+            returnData.push({ json: item, pairedItem: { item: i } });
+          }
+        }
+      } catch (error) {
+        if (error instanceof NodeOperationError || error instanceof NodeApiError) {
+          throw error;
+        }
+        const err = error as { message?: string; statusCode?: number; [key: string]: unknown };
+        throw new NodeApiError(this.getNode(), { message: err.message ?? String(error) }, { itemIndex: i });
+      }
     }
 
-    const taskId = this.getNodeParameter('taskId', 0);
-    const res = await this.helpers.httpRequest({
-      method: 'GET',
-      url: 'https://api-server.compdf.com/server/v2/task/taskInfo',
-      headers: { 'x-api-key': apiKey },
-      qs: { taskId },
-    });
-
-    return [this.helpers.returnJsonArray(res.data ?? res)];
+    return [returnData];
   }
 }
